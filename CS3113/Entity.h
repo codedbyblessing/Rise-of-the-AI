@@ -1,136 +1,168 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
-#include "cs3113.h" 
 #include "Map.h"
-#include <map>
-#include <vector>
 
-enum Direction    { LEFT, UP, RIGHT, DOWN };
-enum EntityStatus { ACTIVE, INACTIVE };
-enum EntityType   { PLAYER, BLOCK, PLATFORM, NPC, ZOMBIE, NONE };
-enum AIType       { WANDERER, FOLLOWER, FLYER, TRACKER };
-enum AIState      { IDLE, WALKING, FOLLOWING };
+enum Direction    { LEFT, UP, RIGHT, DOWN              }; // For walking
+enum EntityStatus { ACTIVE, INACTIVE                   };
+enum EntityType   { PLAYER, BLOCK, PLATFORM, NPC, NONE };
+enum AIType       { WANDERER, FOLLOWER                 };
+enum AIState      { WALKING, IDLE, FOLLOWING           };
 
-class Entity {
+class Entity
+{
 private:
-    Vector2    mPosition {0,0};
-    Vector2    mMovement {0,0};
-    Vector2    mVelocity {0,0};
-    Vector2    mAcceleration {0,0};
+    Vector2 mPosition;
+    Vector2 mMovement;
+    Vector2 mVelocity;
+    Vector2 mAcceleration;
 
-    Vector2    mScale {0,0};
-    Vector2    mColliderDimensions {0,0};
-
-    Texture2D  mTexture {};
-    TextureType mTextureType = SINGLE;
-    Vector2    mSpriteSheetDimensions {1,1};
-
+    Vector2 mScale;
+    Vector2 mColliderDimensions;
+    
+    Texture2D mTexture;
+    TextureType mTextureType;
+    Vector2 mSpriteSheetDimensions;
+    
     std::map<Direction, std::vector<int>> mAnimationAtlas;
     std::vector<int> mAnimationIndices;
-    Direction  mDirection = RIGHT;
-    int        mFrameSpeed = 14;
+    Direction mDirection;
+    int mFrameSpeed;
 
-    int        mCurrentFrameIndex = 0;
-    float      mAnimationTime = 0.0f;
+    int mCurrentFrameIndex = 0;
+    float mAnimationTime = 0.0f;
 
-    bool       mIsJumping = false;
-    float      mJumpingPower = 0.0f;
+    bool mIsJumping = false;
+    float mJumpingPower = 0.0f;
 
-    int        mSpeed = 200;
-    float      mAngle = 0.0f;
+    int mSpeed;
+    float mAngle;
 
-    bool       mIsCollidingTop    = false;
-    bool       mIsCollidingBottom = false;
-    bool       mIsCollidingRight  = false;
-    bool       mIsCollidingLeft   = false;
+    bool mIsCollidingTop    = false;
+    bool mIsCollidingBottom = false;
+    bool mIsCollidingRight  = false;
+    bool mIsCollidingLeft   = false;
 
     EntityStatus mEntityStatus = ACTIVE;
-    EntityType   mEntityType   = NONE;
+    EntityType   mEntityType;
 
-    AIType    mAIType  = WANDERER;
-    AIState   mAIState = IDLE;
+    AIType  mAIType;
+    AIState mAIState;
 
-    bool  isColliding(Entity* other) const;
+    bool isColliding(Entity *other) const;
 
-    // Map collision helpers (implemented in .cpp)
-    void checkCollisionY(Entity* collidableEntities, int collisionCheckCount);
-    void checkCollisionX(Entity* collidableEntities, int collisionCheckCount);
-    void checkCollisionY(Map* map);
-    void checkCollisionX(Map* map);
+    void checkCollisionY(Entity *collidableEntities, int collisionCheckCount);
+    void checkCollisionY(Map *map);
 
-    void animate(float deltaTime);
-    void AIActivate(Entity* target);
-    void AIWander();
-    void AIFollow(Entity* target);
-    void AIFly(Entity* target);
-    void AITrack(Entity* target); // wander + track + jump if needed
-
-    void resetColliderFlags() {
-        mIsCollidingTop = mIsCollidingBottom = mIsCollidingRight = mIsCollidingLeft = false;
+    void checkCollisionX(Entity *collidableEntities, int collisionCheckCount);
+    void checkCollisionX(Map *map);
+    
+    void resetColliderFlags() 
+    {
+        mIsCollidingTop    = false;
+        mIsCollidingBottom = false;
+        mIsCollidingRight  = false;
+        mIsCollidingLeft   = false;
     }
 
+    void animate(float deltaTime);
+    void AIActivate(Entity *target);
+    void AIWander();
+    void AIFollow(Entity *target);
+
 public:
-    static const int   DEFAULT_SIZE        = 250;
-    static const int   DEFAULT_SPEED       = 200;
-    static const int   DEFAULT_FRAME_SPEED = 14;
-    static const float Y_COLLISION_THRESHOLD;
+    static constexpr int   DEFAULT_SIZE          = 250;
+    static constexpr int   DEFAULT_SPEED         = 200;
+    static constexpr int   DEFAULT_FRAME_SPEED   = 14;
+    static constexpr float Y_COLLISION_THRESHOLD = 0.5f;
 
     Entity();
-    Entity(Vector2 position, Vector2 scale, const char* textureFilepath, EntityType entityType);
-    Entity(Vector2 position, Vector2 scale, const char* textureFilepath, TextureType textureType,
-           Vector2 spriteSheetDimensions, std::map<Direction, std::vector<int>> animationAtlas, EntityType entityType);
+    Entity(Vector2 position, Vector2 scale, const char *textureFilepath, 
+        EntityType entityType);
+    Entity(Vector2 position, Vector2 scale, const char *textureFilepath, 
+        TextureType textureType, Vector2 spriteSheetDimensions, 
+        std::map<Direction, std::vector<int>> animationAtlas, 
+        EntityType entityType);
     ~Entity();
 
-    void update(float deltaTime, Entity* player, Map* map, Entity* collidableEntities, int collisionCheckCount);
+    void update(float deltaTime, Entity *player, Map *map, 
+        Entity *collidableEntities, int collisionCheckCount);
     void render();
+    void normaliseMovement() { Normalise(&mMovement); }
+
+    void jump()       { mIsJumping = true;  }
+    void activate()   { mEntityStatus  = ACTIVE;   }
+    void deactivate() { mEntityStatus  = INACTIVE; }
     void displayCollider();
 
-    void normaliseMovement();
-    void jump();
+    bool isActive() { return mEntityStatus == ACTIVE ? true : false; }
 
-    // movement intent
     void moveUp()    { mMovement.y = -1; mDirection = UP;    }
     void moveDown()  { mMovement.y =  1; mDirection = DOWN;  }
     void moveLeft()  { mMovement.x = -1; mDirection = LEFT;  }
     void moveRight() { mMovement.x =  1; mDirection = RIGHT; }
-    void resetMovement() { mMovement = {0,0}; }
 
-    void activate()   { mEntityStatus = ACTIVE; }
-    void deactivate() { mEntityStatus = INACTIVE; }
+    void resetMovement() { mMovement = { 0.0f, 0.0f }; }
 
-    // Public overlap query for level logic
-    bool intersects(const Entity* other) const;
+    Vector2     getPosition()              const { return mPosition;              }
+    Vector2     getMovement()              const { return mMovement;              }
+    Vector2     getVelocity()              const { return mVelocity;              }
+    Vector2     getAcceleration()          const { return mAcceleration;          }
+    Vector2     getScale()                 const { return mScale;                 }
+    Vector2     getColliderDimensions()    const { return mScale;                 }
+    Vector2     getSpriteSheetDimensions() const { return mSpriteSheetDimensions; }
+    Texture2D   getTexture()               const { return mTexture;               }
+    TextureType getTextureType()           const { return mTextureType;           }
+    Direction   getDirection()             const { return mDirection;             }
+    int         getFrameSpeed()            const { return mFrameSpeed;            }
+    float       getJumpingPower()          const { return mJumpingPower;          }
+    bool        isJumping()                const { return mIsJumping;             }
+    int         getSpeed()                 const { return mSpeed;                 }
+    float       getAngle()                 const { return mAngle;                 }
+    EntityType  getEntityType()            const { return mEntityType;            }
+    AIType      getAIType()                const { return mAIType;                }
+    AIState     getAIState()               const { return mAIState;               }
 
-    // Getters
-    bool     isActive()           const { return mEntityStatus == ACTIVE; }
-    bool     isCollidingTop()     const { return mIsCollidingTop; }
-    bool     isCollidingBottom()  const { return mIsCollidingBottom; }
-    Vector2  getPosition()        const { return mPosition; }
-    Vector2  getMovement()        const { return mMovement; }
-    Vector2  getVelocity()        const { return mVelocity; }
-    Vector2  getScale()           const { return mScale; }
-    Vector2  getColliderDimensions() const { return mColliderDimensions; }
-    Direction getDirection()      const { return mDirection; }
-    EntityType getEntityType()    const { return mEntityType; }
-    AIType     getAIType()        const { return mAIType; }
-    AIState    getAIState()       const { return mAIState; }
+    
+    bool isCollidingTop()    const { return mIsCollidingTop;    }
+    bool isCollidingBottom() const { return mIsCollidingBottom; }
 
-    // Setters
-    void setPosition(Vector2 p)                 { mPosition = p; }
-    void setAcceleration(Vector2 a)             { mAcceleration = a; }
-    void setScale(Vector2 s)                    { mScale = s; }
-    void setColliderDimensions(Vector2 d)       { mColliderDimensions = d; }
-    void setSpriteSheetDimensions(Vector2 d)    { mSpriteSheetDimensions = d; }
-    void setSpeed(int s)                        { mSpeed = s; }
-    void setFrameSpeed(int s)                   { mFrameSpeed = s; }
-    void setJumpingPower(float jp)              { mJumpingPower = jp; }
-    void setAngle(float ang)                    { mAngle = ang; }
-    void setEntityType(EntityType t)            { mEntityType = t; }
-    void setAIType(AIType t)                    { mAIType = t; }
-    void setAIState(AIState s)                  { mAIState = s; }
-    void setDirection(Direction d);
-    void setTexture(const char* textureFilepath);
+    std::map<Direction, std::vector<int>> getAnimationAtlas() const { return mAnimationAtlas; }
+
+    void setPosition(Vector2 newPosition)
+        { mPosition = newPosition;                 }
+    void setMovement(Vector2 newMovement)
+        { mMovement = newMovement;                 }
+    void setAcceleration(Vector2 newAcceleration)
+        { mAcceleration = newAcceleration;         }
+    void setScale(Vector2 newScale)
+        { mScale = newScale;                       }
+    void setTexture(const char *textureFilepath)
+        { mTexture = LoadTexture(textureFilepath); }
+    void setColliderDimensions(Vector2 newDimensions) 
+        { mColliderDimensions = newDimensions;     }
+    void setSpriteSheetDimensions(Vector2 newDimensions) 
+        { mSpriteSheetDimensions = newDimensions;  }
+    void setSpeed(int newSpeed)
+        { mSpeed  = newSpeed;                      }
+    void setFrameSpeed(int newSpeed)
+        { mFrameSpeed = newSpeed;                  }
+    void setJumpingPower(float newJumpingPower)
+        { mJumpingPower = newJumpingPower;         }
+    void setAngle(float newAngle) 
+        { mAngle = newAngle;                       }
+    void setEntityType(EntityType entityType)
+        { mEntityType = entityType;                }
+    void setDirection(Direction newDirection)
+    { 
+        mDirection = newDirection;
+
+        if (mTextureType == ATLAS) mAnimationIndices = mAnimationAtlas.at(mDirection);
+    }
+    void setAIState(AIState newState)
+        { mAIState = newState;                     }
+    void setAIType(AIType newType)
+        { mAIType = newType;                       }
 };
 
-#endif
+#endif // ENTITY_H
